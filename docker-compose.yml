@@ -1,0 +1,46 @@
+version: '3'
+services:
+  ml-service:
+    container_name: ml-service
+    restart: on-failure
+    build:
+      context: .
+      dockerfile: app.Dockerfile
+    ports:
+      - "8000:8000"
+    command: uvicorn main:app --reload --host 0.0.0.0 --port 8000 --workers 3
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      ml-postgres-service:
+        condition: service_healthy
+    links:
+      - ml-postgres-service
+    healthcheck:
+      test: wget --no-verbose -O /dev/null --tries=1 http://localhost:8000/health-check || exit 1
+      interval: 10s
+
+  ml-postgres-service:
+    image: postgres:16
+    container_name: ml-postgres-service
+    restart: always
+    volumes:
+      - ml_postgres:/var/lib/postgresql/data/
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER}" ]
+      interval: 2s
+      timeout: 2s
+      retries: 5
+
+
+
+volumes:
+  ml_postgres:

@@ -25,5 +25,3 @@ venv
 .venv
 .idea
 data
-Makefile
-docker-compose.yml
